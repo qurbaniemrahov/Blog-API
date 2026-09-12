@@ -2,13 +2,16 @@
 <html lang="az">
 <head>
   <meta charset="UTF-8" />
+  <head>
+  <meta charset="UTF-8">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Blog API idarəetmə paneli" />
   <title>Northstar — Blog Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -54,6 +57,6 @@
   </div>
 
   <div class="toast-stack" id="toastStack" aria-live="assertive"></div>
-  <script src="app.js"></script>
+  <script src="/assets/js/app.js"></script>
 </body>
 </html>

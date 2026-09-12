@@ -1,4 +1,4 @@
-const CONFIG = { apiBase: localStorage.getItem('northstar_api') || '', perPage: 5 };
+const CONFIG = { apiBase: '', perPage: 5 };
 
 const seed = {
   users: [
@@ -33,10 +33,10 @@ const formatDate = d => new Intl.DateTimeFormat('az-AZ',{day:'2-digit',month:'sh
 function toast(message, error=false){const el=document.createElement('div');el.className=`toast ${error?'error':''}`;el.textContent=message;$('#toastStack').append(el);setTimeout(()=>el.remove(),2800)}
 
 async function api(resource, method='GET', body){
-  if(!CONFIG.apiBase) return null;
   try{
-    const url = `${CONFIG.apiBase.replace(/\/$/,'')}/${resource}`;
-    const res = await fetch(url,{method,headers:{'Content-Type':'application/json','Accept':'application/json'},body:body?JSON.stringify(body):undefined});
+    const url = CONFIG.apiBase ? `${CONFIG.apiBase.replace(/\/$/,'')}/${resource}` : `/${resource}`;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const res = await fetch(url,{method,headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':csrfToken},body:body?JSON.stringify(body):undefined});
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.status===204?null:await res.json();
   }catch(e){toast(`API xətası: ${e.message}. Demo məlumatı istifadə edildi.`,true);return null}
@@ -112,13 +112,41 @@ function openForm(type,id){
   $('#modalBackdrop').hidden=false;document.body.style.overflow='hidden';bindDynamic();$('#entityForm').onsubmit=saveEntity;
 }
 function postFields(p){return `<div class="field full"><label>Başlıq *</label><input name="title" required value="${esc(p.title||'')}" placeholder="Yazının başlığı" /></div><div class="field"><label>Müəllif *</label><select name="userId" required>${state.data.users.map(u=>`<option value="${u.id}" ${p.userId==u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div><div class="field"><label>Kateqoriya *</label><select name="categoryId" required>${state.data.categories.map(c=>`<option value="${c.id}" ${p.categoryId==c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div><div class="field full"><label>Qısa təsvir</label><input name="excerpt" value="${esc(p.excerpt||'')}" placeholder="Bir cümləlik xülasə" /></div><div class="field full"><label>Məzmun *</label><textarea name="content" required placeholder="Məzmunu yazın...">${esc(p.content||'')}</textarea></div><div class="field"><label>Status</label><select name="status"><option value="draft" ${p.status==='draft'?'selected':''}>Qaralama</option><option value="published" ${p.status==='published'?'selected':''}>Yayımla</option></select></div>`}
-function userFields(u){return `<div class="field full"><label>Ad və soyad *</label><input name="name" required value="${esc(u.name||'')}" /></div><div class="field full"><label>E-poçt *</label><input type="email" name="email" required value="${esc(u.email||'')}" /></div><div class="field"><label>Rol</label><select name="role">${['Admin','Redaktor','Müəllif'].map(r=>`<option ${u.role===r?'selected':''}>${r}</option>`).join('')}</select></div><div class="field"><label>Status</label><select name="active"><option value="true" ${u.active!==false?'selected':''}>Aktiv</option><option value="false" ${u.active===false?'selected':''}>Deaktiv</option></select></div>`}
+function userFields(u) {
+  return `
+    <div class="field full">
+      <label>Ad və soyad *</label>
+      <input name="name" required value="${esc(u.name || '')}" />
+    </div>
+
+    <div class="field full">
+      <label>E-poçt *</label>
+      <input type="email" name="email" required value="${esc(u.email || '')}" />
+    </div>
+
+    <div class="field">
+      <label>Rol</label>
+      <select name="role">
+        <option value="admin">Admin</option>
+        <option value="redaktor">Redaktor</option>
+        <option value="author">Müəllif</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Status</label>
+      <select name="status">
+        <option value="active">Aktiv</option>
+        <option value="inactive">Deaktiv</option>
+      </select>
+    </div>
+  `;
+}
 function categoryFields(c){return `<div class="field full"><label>Kateqoriya adı *</label><input name="name" required value="${esc(c.name||'')}" /></div><div class="field full"><label>Slug *</label><input name="slug" required value="${esc(c.slug||'')}" placeholder="meselen-kateqoriya" /></div><div class="field full"><label>Açıqlama</label><textarea name="description">${esc(c.description||'')}</textarea></div>`}
 
 async function saveEntity(e){
   e.preventDefault();const type=e.currentTarget.dataset.type,id=+e.currentTarget.dataset.id;const plural={post:'posts',user:'users',category:'categories'}[type];const data=Object.fromEntries(new FormData(e.currentTarget));
   if(type==='post'){data.userId=+data.userId;data.categoryId=+data.categoryId;data.createdAt=id?(state.data.posts.find(x=>x.id===id).createdAt):new Date().toISOString().slice(0,10)}
-  if(type==='user')data.active=data.active==='true';
   if(id){const idx=state.data[plural].findIndex(x=>x.id===id);state.data[plural][idx]={...state.data[plural][idx],...data};await api(`${plural}/${id}`,'PUT',data)}else{data.id=Math.max(0,...state.data[plural].map(x=>x.id))+1;state.data[plural].unshift(data);await api(plural,'POST',data)}
   persist();closeModal();render();toast(id?'Dəyişikliklər yadda saxlanıldı.':'Yeni məlumat uğurla əlavə edildi.');
 }
