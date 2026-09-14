@@ -43,14 +43,13 @@ async function api(resource, method='GET', body){
 }
 
 async function hydrateFromApi(){
-  if(!CONFIG.apiBase) return;
-  const results = await Promise.all(['posts','users','categories'].map(resource=>api(resource)));
-  ['posts','users','categories'].forEach((resource,index)=>{
-    const payload=results[index];
-    const records=Array.isArray(payload)?payload:(Array.isArray(payload?.data)?payload.data:null);
-    if(records) state.data[resource]=records;
-  });
-  persist();render();
+  const payload = await api('users');
+  const users = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
+
+  if (users) {
+    state.data.users = users;
+    render();
+  }
 }
 
 function pageHead(title, desc, eyebrow='CONTENT OVERVIEW'){
@@ -80,7 +79,7 @@ function postsView(){
 
 function postsTable(title,rows,full,total=rows.length,start=0,pages=1){return `<section class="${title?'panel table-panel':''}">${title?`<div class="panel-head"><h2>${title}</h2><button class="text-btn" data-view="posts">Hamısına bax →</button></div>`:''}${rows.length?`<table class="data-table"><thead><tr><th>Yazı</th><th>Kateqoriya</th><th>Müəllif</th><th>Status</th><th>Tarix</th><th></th></tr></thead><tbody>${rows.map(p=>`<tr><td><div class="title-cell"><span class="post-thumb">${['✦','⌁','◌'][p.id%3]}</span><div><b>${esc(p.title)}</b><small>#${String(p.id).padStart(3,'0')}</small></div></div></td><td>${esc(getCategory(p.categoryId)?.name||'—')}</td><td>${esc(getUser(p.userId)?.name||'—')}</td><td><span class="status ${p.status==='draft'?'draft':''}">${p.status==='published'?'Yayımlanıb':'Qaralama'}</span></td><td>${formatDate(p.createdAt)}</td><td><div class="actions"><button data-edit="post" data-id="${p.id}" title="Redaktə">✎</button><button data-delete="post" data-id="${p.id}" title="Sil">⌫</button></div></td></tr>`).join('')}</tbody></table>`:`<div class="empty"><b>Nəticə tapılmadı</b>Axtarış şərtlərini dəyişin və yenidən yoxlayın.</div>`}${full?`<div class="table-footer"><span>${total?`${start+1}–${Math.min(start+CONFIG.perPage,total)} / ${total}`:'0 nəticə'}</span><div class="pagination"><button data-page="${state.page-1}" ${state.page===1?'disabled':''}>‹</button>${Array.from({length:pages},(_,i)=>`<button data-page="${i+1}" class="${state.page===i+1?'active':''}">${i+1}</button>`).join('')}<button data-page="${state.page+1}" ${state.page===pages?'disabled':''}>›</button></div></div>`:''}</section>`}
 
-function usersView(){return `${pageHead('İstifadəçilər','Komandanızı və onların rollarını idarə edin.','TEAM DIRECTORY')}<div class="panel-head"><h2>Komanda üzvləri (${state.data.users.length})</h2><button class="primary-btn" data-action="new-user">＋ Yeni istifadəçi</button></div><div class="card-grid">${state.data.users.map(u=>`<article class="entity-card"><div class="entity-top"><span class="entity-avatar">${initials(u.name)}</span><div><h3>${esc(u.name)}</h3><p>${esc(u.email)}</p></div><div class="actions"><button data-edit="user" data-id="${u.id}">✎</button><button data-delete="user" data-id="${u.id}">⌫</button></div></div><div class="entity-meta"><span>${esc(u.role)}</span><span class="status ${u.active?'':'inactive'}">${u.active?'Aktiv':'Deaktiv'}</span></div></article>`).join('')}</div>`}
+function usersView(){return `${pageHead('İstifadəçilər','Komandanızı və onların rollarını idarə edin.','TEAM DIRECTORY')}<div class="panel-head"><h2>Komanda üzvləri (${state.data.users.length})</h2><button class="primary-btn" data-action="new-user">＋ Yeni istifadəçi</button></div><div class="card-grid">${state.data.users.map(u=>{const isActive=u.status?u.status==='active':u.active===true;return `<article class="entity-card"><div class="entity-top"><span class="entity-avatar">${initials(u.name)}</span><div><h3>${esc(u.name)}</h3><p>${esc(u.email)}</p></div><div class="actions"><button data-edit="user" data-id="${u.id}">✎</button><button data-delete="user" data-id="${u.id}">⌫</button></div></div><div class="entity-meta"><span>${esc(u.role)}</span><span class="status ${isActive?'':'inactive'}">${isActive?'Aktiv':'Deaktiv'}</span></div></article>`}).join('')}</div>`}
 
 function categoriesView(){const cats=state.data.categories;return `${pageHead('Kateqoriyalar','Məzmunu oxucular üçün səliqəli qruplaşdırın.','CONTENT TAXONOMY')}<div class="panel-head"><h2>Bütün kateqoriyalar (${cats.length})</h2><button class="primary-btn" data-action="new-category">＋ Yeni kateqoriya</button></div><div class="card-grid">${cats.map(c=>`<article class="entity-card"><div class="entity-top"><span class="entity-avatar">${c.name[0]}</span><div><h3>${esc(c.name)}</h3><p>/${esc(c.slug)}</p></div><div class="actions"><button data-edit="category" data-id="${c.id}">✎</button><button data-delete="category" data-id="${c.id}">⌫</button></div></div><p style="color:var(--muted);font-size:11px;min-height:28px;margin:18px 0">${esc(c.description||'Açıqlama əlavə edilməyib')}</p><div class="entity-meta"><span>Yazıların sayı</span><b>${state.data.posts.filter(p=>p.categoryId==c.id).length}</b></div></article>`).join('')}</div>`}
 

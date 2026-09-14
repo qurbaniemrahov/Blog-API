@@ -8,6 +8,13 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+
+   public function index() {
+          $users = User::latest()->get();
+
+        return response()->json($users);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -15,11 +22,11 @@ class UserController extends Controller
             'email' => ['required', 'email', 'unique:users,email'],
             'role' => [
                 'required',
-                Rule::in(['admin', 'editor', 'author']),
+                Rule::in(['admin', 'redaktor', 'author']),
             ],
             'status' => [
                 'required',
-                Rule::in(['active', 'deactive']),
+                Rule::in(['active', 'inactive']),
             ],
         ]);
 
