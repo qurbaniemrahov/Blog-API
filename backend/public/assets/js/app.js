@@ -126,17 +126,17 @@ function userFields(u) {
     <div class="field">
       <label>Rol</label>
       <select name="role">
-        <option value="admin">Admin</option>
-        <option value="redaktor">Redaktor</option>
-        <option value="author">Müəllif</option>
+        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+        <option value="redaktor" ${u.role === 'redaktor' ? 'selected' : ''}>Redaktor</option>
+        <option value="author" ${u.role === 'author' ? 'selected' : ''}>Müəllif</option>
       </select>
     </div>
 
     <div class="field">
       <label>Status</label>
       <select name="status">
-        <option value="active">Aktiv</option>
-        <option value="inactive">Deaktiv</option>
+        <option value="active" ${u.status === 'active' ? 'selected' : ''}>Aktiv</option>
+        <option value="inactive" ${u.status === 'inactive' ? 'selected' : ''}>Deaktiv</option>
       </select>
     </div>
   `;
