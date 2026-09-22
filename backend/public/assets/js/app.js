@@ -34,22 +34,37 @@ function toast(message, error=false){const el=document.createElement('div');el.c
 
 async function api(resource, method='GET', body){
   try{
-    const url = CONFIG.apiBase ? `${CONFIG.apiBase.replace(/\/$/,'')}/${resource}` : `/${resource}`;
+    const apiResources = ['users', 'categories'];
+    const isApiResource = apiResources.some(name => resource === name || resource.startsWith(`${name}/`));
+    const localResource = isApiResource ? `api/${resource}` : resource;
+    const url = CONFIG.apiBase ? `${CONFIG.apiBase.replace(/\/$/,'')}/${resource}` : `/${localResource}`;
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const res = await fetch(url,{method,headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':csrfToken},body:body?JSON.stringify(body):undefined});
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    if(!res.ok){
+      const errorPayload=await res.json().catch(()=>null);
+      throw new Error(errorPayload?.message||`HTTP ${res.status}`);
+    }
     return res.status===204?null:await res.json();
-  }catch(e){toast(`API xətası: ${e.message}. Demo məlumatı istifadə edildi.`,true);return null}
+  }catch(e){toast(`API xətası: ${e.message}.`,true);return undefined}
 }
 
 async function hydrateFromApi(){
-  const payload = await api('users');
-  const users = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
+  const [userPayload, categoryPayload] = await Promise.all([
+    api('users'),
+    api('categories'),
+  ]);
+  const users = Array.isArray(userPayload) ? userPayload : (Array.isArray(userPayload?.data) ? userPayload.data : null);
+  const categories = Array.isArray(categoryPayload) ? categoryPayload : (Array.isArray(categoryPayload?.data) ? categoryPayload.data : null);
 
   if (users) {
     state.data.users = users;
-    render();
   }
+
+  if (categories) {
+    state.data.categories = categories;
+  }
+
+  if (users || categories) render();
 }
 
 function pageHead(title, desc, eyebrow='CONTENT OVERVIEW'){
@@ -146,7 +161,12 @@ function categoryFields(c){return `<div class="field full"><label>Kateqoriya ad�
 async function saveEntity(e){
   e.preventDefault();const type=e.currentTarget.dataset.type,id=+e.currentTarget.dataset.id;const plural={post:'posts',user:'users',category:'categories'}[type];const data=Object.fromEntries(new FormData(e.currentTarget));
   if(type==='post'){data.userId=+data.userId;data.categoryId=+data.categoryId;data.createdAt=id?(state.data.posts.find(x=>x.id===id).createdAt):new Date().toISOString().slice(0,10)}
-  if(id){const idx=state.data[plural].findIndex(x=>x.id===id);state.data[plural][idx]={...state.data[plural][idx],...data};await api(`${plural}/${id}`,'PUT',data)}else{data.id=Math.max(0,...state.data[plural].map(x=>x.id))+1;state.data[plural].unshift(data);await api(plural,'POST',data)}
+  if(type==='user'||type==='category'){
+    const response=await api(id?`${plural}/${id}`:plural,id?'PUT':'POST',data);
+    if(response===undefined)return;
+    const saved=response[type]||response;
+    if(id){const idx=state.data[plural].findIndex(x=>x.id===id);state.data[plural][idx]=saved}else{state.data[plural].unshift(saved)}
+  }else if(id){const idx=state.data[plural].findIndex(x=>x.id===id);state.data[plural][idx]={...state.data[plural][idx],...data}}else{data.id=Math.max(0,...state.data[plural].map(x=>x.id))+1;state.data[plural].unshift(data)}
   persist();closeModal();render();toast(id?'Dəyişikliklər yadda saxlanıldı.':'Yeni məlumat uğurla əlavə edildi.');
 }
 
@@ -155,7 +175,11 @@ async function removeEntity(type,id){
   if(!confirm(`Bu ${label} silmək istədiyinizə əminsiniz?`))return;
   if(type==='category'&&state.data.posts.some(p=>p.categoryId===id)){toast('Bu kateqoriyaya aid yazılar var. Əvvəlcə onları köçürün.',true);return}
   if(type==='user'&&state.data.posts.some(p=>p.userId===id)){toast('Bu istifadəçinin yazıları var. Əvvəlcə müəllifi dəyişin.',true);return}
-  state.data[plural]=state.data[plural].filter(x=>x.id!==id);persist();await api(`${plural}/${id}`,'DELETE');render();toast('Məlumat silindi.');
+  if(type==='user'||type==='category'){
+    const deleted=await api(`${plural}/${id}`,'DELETE');
+    if(deleted===undefined)return;
+  }
+  state.data[plural]=state.data[plural].filter(x=>x.id!==id);persist();render();toast('Məlumat silindi.');
 }
 
 function openSettings(){

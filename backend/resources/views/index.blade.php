@@ -57,6 +57,6 @@
   </div>
 
   <div class="toast-stack" id="toastStack" aria-live="assertive"></div>
-  <script src="/assets/js/app.js"></script>
+  <script src="/assets/js/app.js?v={{ filemtime(public_path('assets/js/app.js')) }}"></script>
 </body>
 </html>
