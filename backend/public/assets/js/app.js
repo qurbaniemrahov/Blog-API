@@ -34,7 +34,7 @@ function toast(message, error=false){const el=document.createElement('div');el.c
 
 async function api(resource, method='GET', body){
   try{
-    const apiResources = ['users', 'categories'];
+    const apiResources = ['users', 'categories', 'posts'];
     const isApiResource = apiResources.some(name => resource === name || resource.startsWith(`${name}/`));
     const localResource = isApiResource ? `api/${resource}` : resource;
     const url = CONFIG.apiBase ? `${CONFIG.apiBase.replace(/\/$/,'')}/${resource}` : `/${localResource}`;
@@ -48,13 +48,28 @@ async function api(resource, method='GET', body){
   }catch(e){toast(`API xətası: ${e.message}.`,true);return undefined}
 }
 
+function normalizePost(post){
+  return {
+    id: post.id,
+    title: post.title,
+    excerpt: post.short_description ?? '',
+    content: post.content,
+    userId: post.user_id,
+    categoryId: post.category_id,
+    status: post.status,
+    createdAt: post.created_at,
+  };
+}
+
 async function hydrateFromApi(){
-  const [userPayload, categoryPayload] = await Promise.all([
+  const [userPayload, categoryPayload, postPayload] = await Promise.all([
     api('users'),
     api('categories'),
+    api('posts'),
   ]);
   const users = Array.isArray(userPayload) ? userPayload : (Array.isArray(userPayload?.data) ? userPayload.data : null);
   const categories = Array.isArray(categoryPayload) ? categoryPayload : (Array.isArray(categoryPayload?.data) ? categoryPayload.data : null);
+  const posts = Array.isArray(postPayload) ? postPayload : (Array.isArray(postPayload?.data) ? postPayload.data : null);
 
   if (users) {
     state.data.users = users;
@@ -64,7 +79,14 @@ async function hydrateFromApi(){
     state.data.categories = categories;
   }
 
-  if (users || categories) render();
+  if (posts) {
+    state.data.posts = posts.map(normalizePost);
+  }
+
+  if (users || categories || posts) {
+    persist();
+    render();
+  }
 }
 
 function pageHead(title, desc, eyebrow='CONTENT OVERVIEW'){
@@ -160,13 +182,25 @@ function categoryFields(c){return `<div class="field full"><label>Kateqoriya ad�
 
 async function saveEntity(e){
   e.preventDefault();const type=e.currentTarget.dataset.type,id=+e.currentTarget.dataset.id;const plural={post:'posts',user:'users',category:'categories'}[type];const data=Object.fromEntries(new FormData(e.currentTarget));
-  if(type==='post'){data.userId=+data.userId;data.categoryId=+data.categoryId;data.createdAt=id?(state.data.posts.find(x=>x.id===id).createdAt):new Date().toISOString().slice(0,10)}
-  if(type==='user'||type==='category'){
+  if(type==='post'){
+    const payload={
+      title:data.title,
+      user_id:+data.userId,
+      category_id:+data.categoryId,
+      short_description:data.excerpt||null,
+      content:data.content,
+      status:data.status,
+    };
+    const response=await api(id?`${plural}/${id}`:plural,id?'PUT':'POST',payload);
+    if(response===undefined)return;
+    const saved=normalizePost(response.post||response);
+    if(id){const idx=state.data[plural].findIndex(x=>x.id===id);state.data[plural][idx]=saved}else{state.data[plural].unshift(saved)}
+  }else{
     const response=await api(id?`${plural}/${id}`:plural,id?'PUT':'POST',data);
     if(response===undefined)return;
     const saved=response[type]||response;
     if(id){const idx=state.data[plural].findIndex(x=>x.id===id);state.data[plural][idx]=saved}else{state.data[plural].unshift(saved)}
-  }else if(id){const idx=state.data[plural].findIndex(x=>x.id===id);state.data[plural][idx]={...state.data[plural][idx],...data}}else{data.id=Math.max(0,...state.data[plural].map(x=>x.id))+1;state.data[plural].unshift(data)}
+  }
   persist();closeModal();render();toast(id?'Dəyişikliklər yadda saxlanıldı.':'Yeni məlumat uğurla əlavə edildi.');
 }
 
@@ -175,10 +209,8 @@ async function removeEntity(type,id){
   if(!confirm(`Bu ${label} silmək istədiyinizə əminsiniz?`))return;
   if(type==='category'&&state.data.posts.some(p=>p.categoryId===id)){toast('Bu kateqoriyaya aid yazılar var. Əvvəlcə onları köçürün.',true);return}
   if(type==='user'&&state.data.posts.some(p=>p.userId===id)){toast('Bu istifadəçinin yazıları var. Əvvəlcə müəllifi dəyişin.',true);return}
-  if(type==='user'||type==='category'){
-    const deleted=await api(`${plural}/${id}`,'DELETE');
-    if(deleted===undefined)return;
-  }
+  const deleted=await api(`${plural}/${id}`,'DELETE');
+  if(deleted===undefined)return;
   state.data[plural]=state.data[plural].filter(x=>x.id!==id);persist();render();toast('Məlumat silindi.');
 }
 
