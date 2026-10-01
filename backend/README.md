@@ -28,12 +28,7 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-Seed edilmiş administrator hesabı:
 
-```text
-E-poçt: admin@example.com
-Şifrə: password
-```
 
 Bu hesab yalnız lokal inkişaf üçündür; real mühitdə şifrəni dərhal dəyişin.
 
