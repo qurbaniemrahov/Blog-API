@@ -24,6 +24,8 @@ class PostController extends Controller
     {
         $validated = $request->validated();
 
+        abort_if($request->user()->role === 'author' && $validated['user_id'] !== $request->user()->id, 403, 'Yalnız öz adınızdan yazı yarada bilərsiniz.');
+
         $validated['slug'] = $this->generateUniqueSlug(
             $validated['title']
         );
@@ -54,7 +56,10 @@ class PostController extends Controller
         UpdatePostRequest $request,
         Post $post
     ): JsonResponse {
+        $this->authorizeAuthorAccess($post);
         $validated = $request->validated();
+
+        abort_if($request->user()->role === 'author' && isset($validated['user_id']) && $validated['user_id'] !== $request->user()->id, 403, 'Yazının müəllifini dəyişə bilməzsiniz.');
 
         if (
             isset($validated['title']) &&
@@ -91,6 +96,7 @@ class PostController extends Controller
 
     public function destroy(Post $post): JsonResponse
     {
+        $this->authorizeAuthorAccess($post);
         $post->delete();
 
         return response()->json([
@@ -124,5 +130,14 @@ class PostController extends Controller
         }
 
         return $slug;
+    }
+
+    private function authorizeAuthorAccess(Post $post): void
+    {
+        abort_if(
+            request()->user()->role === 'author' && $post->user_id !== request()->user()->id,
+            403,
+            'Yalnız öz yazılarınızı idarə edə bilərsiniz.'
+        );
     }
 }

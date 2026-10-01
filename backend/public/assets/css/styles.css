@@ -3,3 +3,12 @@
 @media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}.card-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.app-shell{display:block}.sidebar{transform:translateX(-100%);transition:.25s;box-shadow:var(--shadow)}.sidebar.open{transform:none}.main{width:100%}.menu-toggle{display:block;margin-right:10px}.topbar{padding:0 16px}.global-search{width:auto;flex:1}.global-search kbd{display:none}.content{padding:25px 16px 45px}.page-head{align-items:start;gap:15px}.date-badge{display:none}.stats{gap:10px}.stat-card{padding:15px}.dashboard-grid{gap:12px}.panel{padding:16px}.data-table th:nth-child(3),.data-table td:nth-child(3){display:none}.card-grid{grid-template-columns:1fr}.top-actions .primary-btn{font-size:0;padding:10px 12px}.top-actions .primary-btn span{font-size:16px}.form-body{grid-template-columns:1fr;padding:20px}.field.full,.form-actions{grid-column:1}.modal>header{padding:20px}.table-panel{overflow-x:auto}.data-table{min-width:570px}}
 @media(max-width:430px){.stats{grid-template-columns:1fr 1fr}.stat-value{font-size:23px}.stat-card{min-width:0}.global-search input::placeholder{color:transparent}}
+/* Authentication state */
+.app-shell.logged-out .sidebar,
+.app-shell.logged-out .topbar { display: none; }
+.app-shell.logged-out .main { margin-left: 0; width: 100%; }
+.sidebar-footer .profile-details { min-width: 0; flex: 1; }
+.sidebar-footer .profile-details b,
+.sidebar-footer .profile-details small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-footer .logout-button { margin-left: 4px; padding: 6px 8px; width: auto; border: 1px solid rgba(255,255,255,.18); border-radius: 7px; background: rgba(255,255,255,.08); color: #eef7f1; font: 600 9px "DM Sans", sans-serif; }
+.sidebar-footer .logout-button:hover { background: rgba(255,255,255,.16); color: #fff; }

@@ -2,67 +2,44 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\JsonResponse;
 
 class UserController extends Controller
 {
-    public function update(Request $request, User $user)
+    public function index(): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'email',
-                Rule::unique('users', 'email')->ignore($user->id),
-            ],
-            'role' => ['required', Rule::in(['admin', 'redaktor', 'author'])],
-            'status' => ['required', Rule::in(['active', 'inactive'])],
-        ]);
-
-        $user->update($validated);
-
-        return response()->json([
-            'message' => 'User updated successfully.',
-            'user' => $user->fresh(),
-        ]);
+        return response()->json(User::query()->latest()->get());
     }
 
-public function destroy(User $user)
-{
-    $user->delete();
+    public function store(StoreUserRequest $request): JsonResponse
+    {
+        $user = User::create($request->validated());
 
-    return response()->json([
-        'message' => 'User deleted successfully.',
-    ]);
-}
-   public function index() {
-          $users = User::latest()->get();
-
-        return response()->json($users);
+        return response()->json(['message' => 'İstifadəçi uğurla yaradıldı.', 'user' => $user], 201);
     }
 
-    public function store(Request $request)
+    public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
-            'role' => [
-                'required',
-                Rule::in(['admin', 'redaktor', 'author']),
-            ],
-            'status' => [
-                'required',
-                Rule::in(['active', 'inactive']),
-            ],
-        ]);
+        $user->update(array_filter($request->validated(), fn (mixed $value): bool => $value !== null));
 
-        $user = User::create($validated);
+        return response()->json(['message' => 'İstifadəçi uğurla yeniləndi.', 'user' => $user->fresh()]);
+    }
 
-        return response()->json([
-            'message' => 'İstifadəçi uğurla yaradıldı.',
-            'user' => $user,
-        ], 201);
+    public function destroy(User $user): JsonResponse
+    {
+        if ($user->posts()->exists()) {
+            return response()->json(['message' => 'Bu istifadəçinin yazıları olduğu üçün silinə bilməz.'], 409);
+        }
+
+        if (request()->user()->is($user)) {
+            return response()->json(['message' => 'Öz hesabınızı silə bilməzsiniz.'], 409);
+        }
+
+        $user->delete();
+
+        return response()->json(['message' => 'İstifadəçi uğurla silindi.']);
     }
 }

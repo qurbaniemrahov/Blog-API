@@ -15,8 +15,7 @@ class UpdateCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-
+            'name' => ['required', 'string', 'max:255'],
             'slug' => [
                 'required',
                 'string',
@@ -24,8 +23,7 @@ class UpdateCategoryRequest extends FormRequest
                 Rule::unique('categories', 'slug')
                     ->ignore($this->route('category')),
             ],
-
-            'description' => 'nullable|string',
+            'description' => ['nullable', 'string'],
         ];
     }
 }
