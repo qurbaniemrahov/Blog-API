@@ -15,4 +15,4 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-Lokal admin hesabı: `admin@example.com` / `password`.
+
