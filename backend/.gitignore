@@ -6,7 +6,10 @@
 .phpactor.json
 .phpunit.result.cache
 /.codex
+/.agents
+/.claude
 /.cursor/
+/.mcp.json
 /.idea
 /.nova
 /.phpunit.cache
@@ -21,6 +24,9 @@
 /storage/*.key
 /storage/pail
 /vendor
+/AGENTS.md
+/CLAUDE.md
+/boost.json
 _ide_helper.php
 Homestead.json
 Homestead.yaml
